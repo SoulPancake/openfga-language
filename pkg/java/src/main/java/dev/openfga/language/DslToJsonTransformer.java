@@ -44,27 +44,19 @@ public class DslToJsonTransformer {
     }
 
     public Result parseDsl(String dsl) {
-        var cleanedDsl = Arrays.stream(dsl.split("\n")).map(this::cleanLine).collect(joining("\n"));
-
-        var antlrStream = CharStreams.fromString(cleanedDsl);
-        var errorListener = new OpenFgaDslErrorListener();
-
-        var lexer = new OpenFGALexer(antlrStream);
-        lexer.removeErrorListeners();
-        lexer.addErrorListener(errorListener);
-        var tokenStream = new CommonTokenStream(lexer);
-
-        var parser = new OpenFGAParser(tokenStream);
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-
-        var listener = new OpenFgaDslListener(parser);
-        new ParseTreeWalker().walk(listener, parser.main());
-
-        return new Result(listener.getAuthorizationModel(), errorListener.getErrors());
+        var parsed = doParse(dsl);
+        return new Result(parsed.listener.getAuthorizationModel(), parsed.errorListener.getErrors());
     }
 
     public ModularResult parseModularDsl(String dsl) {
+        var parsed = doParse(dsl);
+        return new ModularResult(
+                parsed.listener.getAuthorizationModel(),
+                parsed.listener.getTypeDefExtensions(),
+                parsed.errorListener.getErrors());
+    }
+
+    private ParsedDsl doParse(String dsl) {
         var cleanedDsl = Arrays.stream(dsl.split("\n")).map(this::cleanLine).collect(joining("\n"));
 
         var antlrStream = CharStreams.fromString(cleanedDsl);
@@ -82,8 +74,17 @@ public class DslToJsonTransformer {
         var listener = new OpenFgaDslListener(parser);
         new ParseTreeWalker().walk(listener, parser.main());
 
-        return new ModularResult(
-                listener.getAuthorizationModel(), listener.getTypeDefExtensions(), errorListener.getErrors());
+        return new ParsedDsl(listener, errorListener);
+    }
+
+    private static final class ParsedDsl {
+        final OpenFgaDslListener listener;
+        final OpenFgaDslErrorListener errorListener;
+
+        ParsedDsl(OpenFgaDslListener listener, OpenFgaDslErrorListener errorListener) {
+            this.listener = listener;
+            this.errorListener = errorListener;
+        }
     }
 
     public static final class Result {
