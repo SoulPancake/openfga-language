@@ -10,6 +10,8 @@ public abstract class ParsingError extends SimpleError {
 
     private String fullMessage;
 
+    private String file;
+
     public ParsingError() {}
 
     public ParsingError(String type, ErrorProperties properties) {
@@ -55,6 +57,14 @@ public abstract class ParsingError extends SimpleError {
 
     public void setFullMessage(String fullMessage) {
         this.fullMessage = fullMessage;
+    }
+
+    public String getFile() {
+        return file;
+    }
+
+    public void setFile(String file) {
+        this.file = file;
     }
 
     public String toString() {

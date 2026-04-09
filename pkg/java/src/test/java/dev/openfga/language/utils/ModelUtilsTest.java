@@ -157,4 +157,96 @@ public class ModelUtilsTest {
         boolean result = ModelUtils.isRelationAssignable(relDef);
         assertFalse(result);
     }
+
+    // isModelModular tests
+
+    @Test
+    public void testIsModelModular_Schema12WithTypeModule() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("user")
+                        .relations(Map.of("viewer", new Userset()))
+                        .metadata(new Metadata().module("user_module"))));
+        assertTrue(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_Schema12WithRelationModule() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("document")
+                        .relations(Map.of("viewer", new Userset()))
+                        .metadata(new Metadata()
+                                .relations(Map.of("viewer", new RelationMetadata().module("viewer_module"))))));
+        assertTrue(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_Schema11NotModular() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.1")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("user")
+                        .relations(Map.of("viewer", new Userset()))
+                        .metadata(new Metadata().module("user_module"))));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_Schema12NoModules() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition().type("user").relations(Map.of("viewer", new Userset()))));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_Schema12EmptyModuleString() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("user")
+                        .relations(Map.of("viewer", new Userset()))
+                        .metadata(new Metadata().module(""))));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_Schema12NoTypeModuleButRelationWithModule() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("document")
+                        .relations(Map.of("viewer", new Userset(), "editor", new Userset()))
+                        .metadata(new Metadata()
+                                .relations(Map.of("editor", new RelationMetadata().module("editor_module"))))));
+        assertTrue(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_NullSchemaVersionThrows() {
+        var model = new AuthorizationModel()
+                .schemaVersion(null)
+                .typeDefinitions(
+                        List.of(new TypeDefinition().type("user").metadata(new Metadata().module("user_module"))));
+        assertThrows(IllegalArgumentException.class, () -> ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_UnsupportedSchemaVersionThrows() {
+        var model = new AuthorizationModel()
+                .schemaVersion("2.0")
+                .typeDefinitions(
+                        List.of(new TypeDefinition().type("user").metadata(new Metadata().module("user_module"))));
+        var exception = assertThrows(IllegalArgumentException.class, () -> ModelUtils.isModelModular(model));
+        assertEquals("Unsupported schema version: 2.0", exception.getMessage());
+    }
+
+    @Test
+    public void testIsModelModular_EmptyTypeDefinitions() {
+        var model = new AuthorizationModel().schemaVersion("1.2").typeDefinitions(List.of());
+        assertFalse(ModelUtils.isModelModular(model));
+    }
 }
