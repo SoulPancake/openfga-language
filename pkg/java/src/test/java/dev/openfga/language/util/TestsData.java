@@ -174,7 +174,7 @@ public class TestsData {
                         }
                     }
                     // Sort modules by name for consistent ordering
-                    modules.sort((a, b) -> a.getName().compareTo(b.getName()));
+                    modules.sort(java.util.Comparator.comparing(ModuleFile::getName));
                     testCase.setModules(modules);
                 }
 
