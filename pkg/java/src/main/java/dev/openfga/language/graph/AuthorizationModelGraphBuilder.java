@@ -126,33 +126,26 @@ public final class AuthorizationModelGraphBuilder {
     private void parseThis(AuthorizationModelNode parentNode, TypeDefinition typeDef, String relation) {
         List<RelationReference> directlyRelated = getDirectlyRelatedTypes(typeDef, relation);
         for (RelationReference ref : directlyRelated) {
-            AuthorizationModelNode curNode = null;
-
             boolean hasRelation =
                     ref.getRelation() != null && !ref.getRelation().isEmpty();
             boolean hasWildcard = ref.getWildcard() != null;
 
-            if (!hasRelation && !hasWildcard) {
-                // direct assignment to concrete type
+            AuthorizationModelNode curNode;
+            if (hasRelation) {
+                // direct assignment to userset (e.g. group#member)
+                String assignableUserset = ref.getType() + "#" + ref.getRelation();
+                curNode = getOrAddNode(assignableUserset, assignableUserset, NodeType.SPECIFIC_TYPE_AND_RELATION);
+            } else if (hasWildcard) {
+                // direct assignment to wildcard (e.g. user:*)
+                String assignableWildcard = ref.getType() + ":*";
+                curNode = getOrAddNode(assignableWildcard, assignableWildcard, NodeType.SPECIFIC_TYPE_WILDCARD);
+            } else {
+                // direct assignment to concrete type (e.g. user)
                 String assignableType = ref.getType();
                 curNode = getOrAddNode(assignableType, assignableType, NodeType.SPECIFIC_TYPE);
             }
 
-            if (hasWildcard) {
-                // direct assignment to wildcard
-                String assignableWildcard = ref.getType() + ":*";
-                curNode = getOrAddNode(assignableWildcard, assignableWildcard, NodeType.SPECIFIC_TYPE_WILDCARD);
-            }
-
-            if (hasRelation) {
-                // direct assignment to userset
-                String assignableUserset = ref.getType() + "#" + ref.getRelation();
-                curNode = getOrAddNode(assignableUserset, assignableUserset, NodeType.SPECIFIC_TYPE_AND_RELATION);
-            }
-
-            if (curNode != null) {
-                upsertEdge(curNode, parentNode, EdgeType.DIRECT, "", ref.getCondition());
-            }
+            upsertEdge(curNode, parentNode, EdgeType.DIRECT, "", ref.getCondition());
         }
     }
 
@@ -235,18 +228,13 @@ public final class AuthorizationModelGraphBuilder {
             String condition) {
         if (from == null || to == null) return;
 
-        List<AuthorizationModelEdge> edges = outEdges.getOrDefault(from.getId(), Collections.emptyList());
-        for (AuthorizationModelEdge edge : edges) {
-            if (edge.getTo().getId() == to.getId()
-                    && edge.getEdgeType() == edgeType
-                    && Objects.equals(edge.getTuplesetRelation(), tuplesetRelation)) {
-                // Check if condition already exists
-                String cond = (condition != null) ? condition : NO_COND;
-                if (!edge.getConditions().contains(cond)) {
-                    edge.addCondition(cond);
-                }
-                return;
+        AuthorizationModelEdge existing = findEdge(from, to, edgeType, tuplesetRelation);
+        if (existing != null) {
+            String cond = (condition != null) ? condition : NO_COND;
+            if (!existing.getConditions().contains(cond)) {
+                existing.addCondition(cond);
             }
+            return;
         }
 
         String cond = (condition != null) ? condition : NO_COND;
@@ -255,16 +243,24 @@ public final class AuthorizationModelGraphBuilder {
 
     private boolean hasEdge(
             AuthorizationModelNode from, AuthorizationModelNode to, EdgeType edgeType, String tuplesetRelation) {
-        if (from == null || to == null) return false;
+        return findEdge(from, to, edgeType, tuplesetRelation) != null;
+    }
+
+    /**
+     * Returns the first edge matching (from → to, edgeType, tuplesetRelation), or {@code null}.
+     */
+    private AuthorizationModelEdge findEdge(
+            AuthorizationModelNode from, AuthorizationModelNode to, EdgeType edgeType, String tuplesetRelation) {
+        if (from == null || to == null) return null;
 
         for (AuthorizationModelEdge edge : outEdges.getOrDefault(from.getId(), Collections.emptyList())) {
             if (edge.getTo().getId() == to.getId()
                     && edge.getEdgeType() == edgeType
                     && Objects.equals(edge.getTuplesetRelation(), tuplesetRelation)) {
-                return true;
+                return edge;
             }
         }
-        return false;
+        return null;
     }
 
     private static List<RelationReference> getDirectlyRelatedTypes(TypeDefinition typeDef, String relation) {
