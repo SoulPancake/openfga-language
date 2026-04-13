@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+Added:
+- Port authorization model graph API from Go (AuthorizationModelGraph, AuthorizationModelGraphBuilder) with path queries, cycle detection, and DOT visualization
+
 ## pkg/java/v0.2.0-beta.2
 
 ### [v0.2.0-beta.2](https://github.com/openfga/language/compare/pkg/java/v0.2.0-beta.1...pkg/java/v0.2.0-beta.2) (2024-09-06)
