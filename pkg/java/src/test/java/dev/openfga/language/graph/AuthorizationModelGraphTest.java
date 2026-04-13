@@ -1,6 +1,7 @@
 package dev.openfga.language.graph;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import dev.openfga.language.DslToJsonTransformer;
 import dev.openfga.sdk.api.model.AuthorizationModel;
@@ -904,19 +905,5 @@ class AuthorizationModelGraphTest {
             var ex = new GraphException("test message");
             assertThat(ex.getMessage()).isEqualTo("test message");
         }
-    }
-
-    // helper to avoid checked exceptions in lambda
-    private static <T> T assertDoesNotThrow(ThrowingSupplier<T> fn) {
-        try {
-            return fn.get();
-        } catch (Exception e) {
-            throw new AssertionError("Expected no exception, but got: " + e, e);
-        }
-    }
-
-    @FunctionalInterface
-    interface ThrowingSupplier<T> {
-        T get() throws Exception;
     }
 }
