@@ -1,12 +1,16 @@
 package dev.openfga.language.utils;
 
-import dev.openfga.sdk.api.model.Metadata;
-import dev.openfga.sdk.api.model.RelationMetadata;
-import dev.openfga.sdk.api.model.TypeDefinition;
-import dev.openfga.sdk.api.model.Userset;
+import dev.openfga.sdk.api.model.*;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ModelUtils {
+
+    private static final Set<String> SUPPORTED_SCHEMA_VERSIONS = new HashSet<>(Arrays.asList("1.1", "1.2"));
+    private static final Set<String> MODULE_SUPPORTING_SCHEMA_VERSIONS = new HashSet<>(Arrays.asList("1.2"));
+
     /**
      * getModuleForObjectTypeRelation returns the module for the given object type and relation in that type.
      *
@@ -70,6 +74,57 @@ public class ModelUtils {
         }
 
         // ComputedUserset and TupleToUserset are not assignable
+        return false;
+    }
+
+    /**
+     * isModelModular returns true if the model is modular.
+     * A model is modular if it has schema version 1.2 and has at least one relation or object
+     * that has a module defined in its metadata.
+     *
+     * @param model An AuthorizationModel object.
+     * @return A boolean representing whether the model is modular.
+     * @throws IllegalArgumentException if the model's schema version is not recognized.
+     */
+    public static boolean isModelModular(AuthorizationModel model) {
+        var schemaVersion = model.getSchemaVersion();
+
+        if (schemaVersion == null || !SUPPORTED_SCHEMA_VERSIONS.contains(schemaVersion)) {
+            throw new IllegalArgumentException("Unsupported schema version: " + schemaVersion);
+        }
+
+        if (!MODULE_SUPPORTING_SCHEMA_VERSIONS.contains(schemaVersion)) {
+            return false;
+        }
+
+        var typeDefs = model.getTypeDefinitions();
+        if (typeDefs == null) {
+            return false;
+        }
+
+        for (var typeDef : typeDefs) {
+            var metadata = typeDef.getMetadata();
+            if (metadata == null) {
+                continue;
+            }
+
+            // Check if the type itself has a module
+            if (metadata.getModule() != null && !metadata.getModule().isEmpty()) {
+                return true;
+            }
+
+            // Check if any relation has a module defined
+            var relationsMetadata = metadata.getRelations();
+            if (relationsMetadata != null) {
+                for (var relationMetadata : relationsMetadata.values()) {
+                    if (relationMetadata.getModule() != null
+                            && !relationMetadata.getModule().isEmpty()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         return false;
     }
 }
