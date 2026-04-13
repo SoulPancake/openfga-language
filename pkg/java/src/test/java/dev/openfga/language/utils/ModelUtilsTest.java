@@ -249,4 +249,66 @@ public class ModelUtilsTest {
         var model = new AuthorizationModel().schemaVersion("1.2").typeDefinitions(List.of());
         assertFalse(ModelUtils.isModelModular(model));
     }
+
+    @Test
+    public void testIsModelModular_NullTypeDefinitions() {
+        var model = new AuthorizationModel().schemaVersion("1.2").typeDefinitions(null);
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_TypeDefWithNullMetadata() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition().type("user")));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_TypeDefWithMetadataButNullRelationsMap() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition().type("user").metadata(new Metadata())));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_RelationMetadataWithEmptyModuleString() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("document")
+                        .relations(Map.of("viewer", new Userset()))
+                        .metadata(new Metadata().relations(Map.of("viewer", new RelationMetadata().module(""))))));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsModelModular_RelationMetadataWithNullModule() {
+        var model = new AuthorizationModel()
+                .schemaVersion("1.2")
+                .typeDefinitions(List.of(new TypeDefinition()
+                        .type("document")
+                        .relations(Map.of("viewer", new Userset()))
+                        .metadata(new Metadata().relations(Map.of("viewer", new RelationMetadata())))));
+        assertFalse(ModelUtils.isModelModular(model));
+    }
+
+    @Test
+    public void testIsRelationAssignable_NullRelDef() {
+        assertFalse(ModelUtils.isRelationAssignable(null));
+    }
+
+    @Test
+    public void testIsRelationAssignable_EmptyUserset() {
+        assertFalse(ModelUtils.isRelationAssignable(new Userset()));
+    }
+
+    @Test
+    public void testGetModuleForObjectTypeRelation_NullRelations() {
+        TypeDefinition typeDef = new TypeDefinition().type("empty");
+        Exception exception =
+                assertThrows(Exception.class, () -> ModelUtils.getModuleForObjectTypeRelation(typeDef, "any"));
+        assertEquals("relation any does not exist in type empty", exception.getMessage());
+    }
 }

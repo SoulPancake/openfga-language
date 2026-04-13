@@ -11,6 +11,8 @@ public class ModelUtils {
     private static final Set<String> SUPPORTED_SCHEMA_VERSIONS = new HashSet<>(Arrays.asList("1.1", "1.2"));
     private static final Set<String> MODULE_SUPPORTING_SCHEMA_VERSIONS = new HashSet<>(Arrays.asList("1.2"));
 
+    private ModelUtils() {}
+
     /**
      * getModuleForObjectTypeRelation returns the module for the given object type and relation in that type.
      *
