@@ -76,6 +76,8 @@ public class ModuleTransformer {
                         continue;
                     }
 
+                    types.add(typeDef.getType());
+
                     if (typeDef.getMetadata() == null) {
                         transformErrors.add(new ModuleTransformationSingleError(
                                 "file is not a module", module.getName(), new StartEnd(0, 0), new StartEnd(0, 0)));
@@ -83,7 +85,6 @@ public class ModuleTransformer {
                     }
 
                     typeDef.getMetadata().setSourceInfo(new SourceInfo()._file(module.getName()));
-                    types.add(typeDef.getType());
                     rawTypeDefs.add(typeDef);
                 }
             }
